@@ -27,19 +27,21 @@ module CookbookDevelopment
 
     def define
 
-      kitchen_config = Kitchen::Config.new
-      Kitchen.logger = Kitchen.default_file_logger
+      unless ENV['TRAVIS']
+        kitchen_config = Kitchen::Config.new
+        Kitchen.logger = Kitchen.default_file_logger
 
-      namespace "kitchen" do
-        kitchen_config.instances.each do |instance|
-          desc "Run #{instance.name} test instance"
-          task instance.name do
-            instance.test(:passing)
+        namespace "kitchen" do
+          kitchen_config.instances.each do |instance|
+            desc "Run #{instance.name} test instance"
+            task instance.name do
+              instance.test(:passing)
+            end
           end
-        end
 
-        desc "Run all test instances"
-        task "all" => kitchen_config.instances.map { |i| i.name }
+          desc "Run all test instances"
+          task "all" => kitchen_config.instances.map { |i| i.name }
+        end
       end
 
       desc 'Runs knife cookbook test'
@@ -64,9 +66,11 @@ module CookbookDevelopment
       end
       task :unit => :berks_install
 
-      desc 'Runs integration tests'
-      task :integration do
-        Rake::Task['kitchen:all'].invoke
+      unless ENV['TRAVIS']
+        desc 'Runs integration tests'
+        task :integration do
+          Rake::Task['kitchen:all'].invoke
+        end
       end
 
       desc 'Run all tests and linting'
@@ -74,7 +78,7 @@ module CookbookDevelopment
         Rake::Task['knife_test'].invoke
         Rake::Task['foodcritic'].invoke
         Rake::Task['unit'].invoke
-        Rake::Task['integration'].invoke
+        Rake::Task['integration'].invoke unless ENV['TRAVIS']
       end
 
       task :berks_install do |task|
